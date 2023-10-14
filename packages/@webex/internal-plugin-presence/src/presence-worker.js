@@ -95,6 +95,14 @@ export default class PresenceWorker {
       this.campers[id] = now;
     }
 
+    console.warn('presence-worker enqueue', {
+      id,
+      campers: this.campers,
+      presences: this.presences,
+      subscribers: this.subscribers,
+      watchers: this.watchers,
+    });
+
     // Retrieve presence if:
     // not in flight or
     // don't already have the presence or

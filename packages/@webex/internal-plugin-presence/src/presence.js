@@ -38,7 +38,14 @@ const Presence = WebexPlugin.extend({
    * @returns {undefined}
    */
   initialize() {
+    console.warn('presence initialize()');
+    this.modern = new Modern({webex: this.webex});
+
     this.webex.once('ready', () => {
+      console.warn('presence webex ready');
+
+      this.modern.initialize();
+
       if (this.config.initializeWorker) {
         this.worker.initialize(this.webex);
       }
@@ -52,6 +59,7 @@ const Presence = WebexPlugin.extend({
    * @returns {undefined}
    */
   emitEvent(event, payload) {
+    console.warn('presence emitEvent()', event, payload);
     if (payload.type && payload.payload) {
       this.trigger(event, payload);
     }
@@ -62,6 +70,8 @@ const Presence = WebexPlugin.extend({
    * @returns {Promise<boolean>} resolves with true, if successful
    */
   enable() {
+    console.warn('presence enable()');
+
     return this.webex.internal.feature
       .setFeature(USER, USER_PRESENCE_ENABLED, true)
       .then((response) => response.value);
@@ -72,6 +82,8 @@ const Presence = WebexPlugin.extend({
    * @returns {Promise<boolean>} resolves with false, if successful
    */
   disable() {
+    console.warn('presence disable()');
+
     return this.webex.internal.feature
       .setFeature(USER, USER_PRESENCE_ENABLED, false)
       .then((response) => response.value);
@@ -82,6 +94,8 @@ const Presence = WebexPlugin.extend({
    * @returns {Promise<boolean>} resolves with true if presence is enabled
    */
   isEnabled() {
+    console.warn('presence isEnabled()');
+
     return this.webex.internal.feature.getFeature(USER, USER_PRESENCE_ENABLED);
   },
 
@@ -111,6 +125,7 @@ const Presence = WebexPlugin.extend({
    * @returns {Promise<PresenceStatusObject>} resolves with status object of person
    */
   get(personId) {
+    console.warn('presence get()', {personId});
     if (!personId) {
       return Promise.reject(new Error('A person id is required'));
     }
@@ -134,9 +149,18 @@ const Presence = WebexPlugin.extend({
    * @returns {Promise<PresenceStatusesObject>} resolves with an object with key of `statusList` array
    */
   list(personIds) {
+    console.warn('presence list()', {personIds});
     if (!personIds || !Array.isArray(personIds)) {
       return Promise.reject(new Error('An array of person ids is required'));
     }
+
+    // TEMP: Modern fetch.
+    this.modern
+      .subscribe(personIds)
+      .then((presences) => ({
+        statusList: presences,
+      }))
+      .then((response) => console.warn('presence subscribe response', response));
 
     return Promise.all(personIds.map((id) => this.batcher.request(id))).then((presences) => ({
       statusList: presences,
@@ -151,6 +175,7 @@ const Presence = WebexPlugin.extend({
    * @returns {Promise}
    */
   subscribe(personIds, subscriptionTtl = defaultSubscriptionTtl) {
+    console.warn('presence subscribe()', {personIds, subscriptionTtl});
     let subjects;
     const batches = [];
     const batchLimit = 50;
@@ -192,6 +217,7 @@ const Presence = WebexPlugin.extend({
    * @returns {Promise}
    */
   unsubscribe(personIds) {
+    console.warn('presence unsubscribe()', {personIds});
     let subjects;
 
     if (!personIds) {
@@ -202,6 +228,8 @@ const Presence = WebexPlugin.extend({
     } else {
       subjects = [personIds];
     }
+
+    this.modern.unsubscribe(personIds);
 
     return this.webex.request({
       method: 'POST',
@@ -222,6 +250,7 @@ const Presence = WebexPlugin.extend({
    * @returns {Promise}
    */
   setStatus(status, ttl) {
+    console.warn('presence setStatus()', {status, ttl});
     if (!status) {
       return Promise.reject(new Error('A status is required'));
     }
@@ -246,6 +275,10 @@ const Presence = WebexPlugin.extend({
    * @returns {undefined}
    */
   enqueue(id) {
+    console.warn('presence enqueue()', {id});
+
+    this.modern.subscribe(id);
+
     return this.worker.enqueue(id);
   },
 
@@ -255,6 +288,10 @@ const Presence = WebexPlugin.extend({
    * @returns {undefined}
    */
   dequeue(id) {
+    console.warn('presence dequeue()', {id});
+
+    this.modern.unsubscribe(id);
+
     return this.worker.dequeue(id);
   },
 });
