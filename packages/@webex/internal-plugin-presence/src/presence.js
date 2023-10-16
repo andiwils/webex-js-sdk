@@ -8,6 +8,7 @@ import {WebexPlugin} from '@webex/webex-core';
 
 import PresenceBatcher from './presence-batcher';
 import PresenceWorker from './presence-worker';
+import Modern from './modern';
 
 const defaultSubscriptionTtl = 600;
 const USER = 'user';
